@@ -2,7 +2,9 @@
 %%%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %%% Author: Haran Arasaratnam
 %%% Date 11/26/2017
-%%% Revision: added PDA for data association
+%%% Revision: 
+%%% added PDA for data association
+%%% created a seperate m file for mahalanobis dist
 %%%+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 close all;
@@ -55,7 +57,7 @@ xList_est = []; %filter estimated state
 xRob_gt_prev = xRob_init;
 
 xUpd = xRob_init;
-PsqrtUpd = sqrt(diag([1,1,1e-2]));
+PUpd =diag([1,1,1e-2]);
 
 xOdom_prev = xRob_init;
 
@@ -75,11 +77,11 @@ for k=2:nSteps
     
     u_est = estimate_control(xOdom_prev,xOdom_now);    
     
-    [xPred,PsqrtPred] = predict_ckf(xUpd,PsqrtUpd,u_est);    
+    [xPred,PPred] = predict_ekf(xUpd,PUpd,u_est);    
     
     if ~isempty(z_list)        
         
-        [est_lmk_ids,obs_hyp] = probabilistic_data_association(xPred,PsqrtPred,z_list);        
+        [est_lmk_ids,obs_hyp] = probabilistic_data_association(xPred,PPred,z_list);        
         
         nObs = size(z_list,2);
         
@@ -93,14 +95,14 @@ for k=2:nSteps
             
             if obs_hyp(m)                               
                 
-                [xUpd,PsqrtUpd] = update_ckf(z_list(:,m),est_lmk_ids(m),xPred,PsqrtPred);
+                [xUpd,PUpd] = update_ekf(z_list(:,m),est_lmk_ids(m),xPred,PPred);
                 
                 xPred = xUpd;
-                PsqrtPred  = PsqrtUpd;
+                PPred  = PUpd;
             else
                 
                 xUpd = xPred;
-                PsqrtUpd = PsqrtPred;
+                PUpd = PPred;
                 
                 
             end
@@ -118,7 +120,7 @@ for k=2:nSteps
     else
         
         xUpd = xPred;
-        PsqrtUpd = PsqrtPred;        
+        PUpd = PPred;        
         
     end;
     

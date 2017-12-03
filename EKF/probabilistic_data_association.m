@@ -1,9 +1,8 @@
-function [est_lmk_ids,obs_hyp] = probabilistic_data_association(xRob,PsqrtPred,z_list)
+function [est_lmk_ids,obs_hyp] = probabilistic_data_association(xRob,PPred,z_list)
 
 global map_lmk;
 global lidar_range;
 global lidar_bearing;
-global sigma_mst_est;
 
 %step 1: predict landmarks
 
@@ -76,32 +75,8 @@ for m =1:nObs
         %compute mahalnobis distance
  
         xLmk = map_lmk(map_lmk(:,3)==map_id,1:2)';
-        
-        
-        
-        nx = 3;
-
-        nPts = 2*nx;   % No. of Cubature Points
-        
-        CPtArray = sqrt(nPts/2)*[eye(nx) -eye(nx)];
-        Xc =  repmat(xRob,1,nPts) + PsqrtPred*CPtArray;
-        Xc(3,:) = angleWrapping(Xc(3,:));
-        
-        Zc = measModel(Xc,xLmk);
-        zPred = sum(Zc,2)/nPts;      % predicted Measurement        
-        zPred(2,:) = angleWrapping(zPred(2,:));
-        
-        Z = (Zc-repmat(zPred,1,nPts));
-        Z(2,:) = angleWrapping(Z(2,:));
-
-        [~,Sc] = qr([Z/sqrt(nPts) sigma_mst_est]',0);
-        
-        innov = (cur_z-zPred);
-        innov(2) = angleWrapping(innov(2));
-
-        
-        y = Sc'\innov;
-        d2 = (y'*y);
+                
+        d2 = mahalanobis_dist(cur_z,xRob,xLmk,PPred);
         
         if d2<chi2inv(0.95,2)
             
